@@ -1,5 +1,5 @@
 # Project Proposals
-Below, I have described two project ideas that I would like to be considered for my final project for this course. The first is an unconventional idea, and second conventional.
+Below, I have described two project ideas that I would like to be considered for my final project for this course. The first is an unconventional idea, and second conventional. I have ordered them according to personal preference **(based on both interest, value added to the course, and feasibility)**
 
 
 # Option 1: Generative Art: Fractal Generation and Visualisation with Parameter Tuning
