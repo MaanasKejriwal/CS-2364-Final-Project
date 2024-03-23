@@ -7,7 +7,7 @@ Below, I have described two project ideas that I would like to be considered for
 
 <H3>What I plan to do</H3>
 
-My first idea is a fractal generator and visualiser. I will be generating fractals such as the Mandelbrot set, the Julia Set, Fractal trees, the Markus-Lyapunov Fractal, Buddhabrot, "random walk" etc. I will be generating these with random or set dimensions, and I am planning on letting the user play around with sliders to make various adjustments to paramaeters that will influence the output 3d generated fractal. These parameters include size, iterations, colours etc. I am also planning on adding a "randomise" button which the user can click to see a randomly generated fractal by picking random variables.
+My first idea is a fractal generator and visualiser. I will be generating fractals such as the Mandelbrot set, the Julia Set, Fractal trees, the Markus-Lyapunov Fractal, Buddhabrot, "random walk" etc. I will be generating these with random or set dimensions, and I am planning on letting the user play around with sliders to make various adjustments to paramaeters that will influence the output 3d generated fractal. These parameters include size, iterations, colours etc. I am also planning on adding a "randomise" button which the user can click to see a randomly generated fractal by picking random variables. This is **really interesting to me as this lies at the intersection of CS, Graphics, and Mathematics.**
 
 Since this is just a proposal, I would also want to share my backup idea if in case I am unable to generate a 3d model of these fractals, due to any unforseen hurdles. If this happens, I should still be able to generate images of these fractals and also possibly animations of these fractals being generated. 
 
@@ -16,6 +16,8 @@ Since this is just a proposal, I would also want to share my backup idea if in c
 For the fractal generation, I will be writing python code to generate multiple different types of fractals as described above. I will be allowing parameter tuning and parameter randomisation at the user's end through simple buttons and sliders. I will also be creating images/animations/3d models based on complexity, feasibility and time constraints.
 
 For visualisation, I plan to use a combination of plotly and matplotlib depending on what generates better looking models. I will also be researching other packages such as OpenGL for 3D visualisation. For the UI sliders I plan to use Streamlit.
+
+I am also happy to write a small report on the project as a supplement.
 
 A few examples of what I am talking about are attached below:
 
