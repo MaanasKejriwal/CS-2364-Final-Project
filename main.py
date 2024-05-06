@@ -1,132 +1,98 @@
 import numpy as np
-import streamlit as st
-import plotly.graph_objects as go
+from numba import jit
+from PIL import Image
 
-def julia_quadratic(zx, zy, cx, cy, threshold):
-    """Calculates whether the number z[0] = zx + i*zy with a constant c = x + i*y
-    belongs to the Julia set. In order to belong, the sequence 
-    z[i + 1] = z[i]**2 + c, must not diverge after 'threshold' number of steps.
-    The sequence diverges if the absolute value of z[i+1] is greater than 4.
-    
-    :param float zx: the x component of z[0]
-    :param float zy: the y component of z[0]
-    :param float cx: the x component of the constant c
-    :param float cy: the y component of the constant c
-    :param int threshold: the number of iterations to considered it converged
-    """
-    # initial conditions
-    z = complex(zx, zy)
-    c = complex(cx, cy)
-    
-    for i in range(threshold):
-        z = z**2 + c
-        if abs(z) > 4.:  # it diverged
-            return i
-        
-    return threshold - 1  # it didn't diverge
+# Fractal and rendering parameters
+POWER = 8
+MAX_ITER = 100
+ESCAPE_RADIUS = 2
+DELTA = 0.001
+WIDTH, HEIGHT = 400, 300
+FOV = np.pi / 4
+ASPECT_RATIO = WIDTH / HEIGHT
+CAMERA_DISTANCE = 3.0
+FRAMES = 30
 
-# def mandelbrot(cx, cy, threshold):
-#     """Calculates whether the number c = cx + i*cy belongs to the Mandelbrot set.
-#     :param float cx: the x component of the constant c
-#     :param float cy: the y component of the constant c
-#     :param int threshold: the number of iterations to considered it converged
-#     """
-#     c = complex(cx, cy)
-#     z = 0
-#     for i in range(threshold):
-#         z = z**2 + c
-#         if abs(z) > 2:  # it diverged
-#             return i
-#     return threshold - 1  # it didn't diverge
+@jit(nopython=True)
+def mandelbulb_distance(p, power=8, max_iterations=100, bailout=2.0):
+    z = np.copy(p)
+    dr = 1.0
+    r = 0.0
+    for i in range(max_iterations):
+        r = np.linalg.norm(z)
+        if r > bailout:
+            break
+        theta = np.arctan2(np.hypot(z[0], z[1]), z[2])
+        phi = np.arctan2(z[1], z[0])
+        zr = r**power
+        dr = (power * zr / r) * dr + 1.0
+        theta *= power
+        phi *= power
+        z = zr * np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)]) + p
+    return 0.5 * np.log(r) * r / dr, i
 
-# Create initial parameters
-x_start, y_start = -2, -2
-width, height = 4, 4
-density_per_unit = 200
-threshold = 20
-frames = 100
+@jit(nopython=True)
+def ray_march(origin, direction, max_dist=20, max_steps=200, eps=0.001):
+    dist_traveled = 0.0
+    for i in range(max_steps):
+        p = origin + dist_traveled * direction
+        dist, iterations = mandelbulb_distance(p)
+        if dist < eps:
+            return dist_traveled, p, iterations
+        dist_traveled += dist
+        if dist_traveled >= max_dist:
+            return None, None, None
+    return None, None, None
 
-# Function to compute Julia set
-def compute_julia(r, a, threshold):
-    re = np.linspace(x_start, x_start + width, width * density_per_unit )
-    im = np.linspace(y_start, y_start + height, height * density_per_unit)
-    cx, cy = r * np.cos(a), r * np.sin(a)
-    julia_set = np.empty((len(re), len(im)))
-    for i in range(len(re)):
-        for j in range(len(im)):
-            julia_set[i, j] = julia_quadratic(re[i], im[j], cx, cy, threshold)
-    return julia_set
+@jit(nopython=True)
+def get_normal(p, delta=0.001):
+    # Approximate the gradient (normal) at p
+    grad = np.array([
+        mandelbulb_distance(p + np.array([delta, 0, 0]))[0] - mandelbulb_distance(p - np.array([delta, 0, 0]))[0],
+        mandelbulb_distance(p + np.array([0, delta, 0]))[0] - mandelbulb_distance(p - np.array([0, delta, 0]))[0],
+        mandelbulb_distance(p + np.array([0, 0, delta]))[0] - mandelbulb_distance(p - np.array([0, 0, delta]))[0]
+    ])
+    return grad / np.linalg.norm(grad)
 
-# Function to compute Mandelbrot set
-# def compute_mandelbrot(threshold):
-#     re = np.linspace(x_start, x_start + width, width * density_per_unit )
-#     im = np.linspace(y_start, y_start + height, height * density_per_unit)
-#     mandelbrot_set = np.empty((len(re), len(im)))
-#     for i in range(len(re)):
-#         for j in range(len(im)):
-#             mandelbrot_set[i, j] = mandelbrot(re[i], im[j], threshold)
-#     return mandelbrot_set
+def normalize(v):
+    return v / np.linalg.norm(v)
 
-# Streamlit app
-st.title('Fractal Visualization')
+def simple_lighting(normal, light_dir, light_color=np.array([255, 200, 150])):
+    # Lambertian reflectance model for diffuse lighting
+    light_intensity = max(np.dot(normal, light_dir), 0)
+    return (light_color * light_intensity).astype(int)
 
-# Add sliders for parameters
-r_julia = st.slider('r (Julia)', min_value=0.0, max_value=1.0, value=0.7885, step=0.01)
-a_julia = st.slider('a (Julia)', min_value=0.0, max_value=2*np.pi, value=0.0, step=0.01)
-threshold_julia = st.slider('Threshold (Julia)', min_value=1, max_value=100, value=20, step=1)
+def render_frame(angle, filename):
+    image = Image.new('RGB', (WIDTH, HEIGHT))
+    camera_pos = np.array([CAMERA_DISTANCE * np.sin(angle), 0, CAMERA_DISTANCE * np.cos(angle)])
+    look_at = np.array([0, 0, 0])
+    up = np.array([0, 1, 0])
+    forward = look_at - camera_pos
+    right = np.cross(up, forward)
+    up = np.cross(forward, right)
+    forward = forward / np.linalg.norm(forward)
+    right = right / np.linalg.norm(right)
+    up = up / np.linalg.norm(up)
+    light_dir = normalize(np.array([1, 1, -1]))  # Example light direction
 
-# threshold_mandelbrot = st.slider('Threshold (Mandelbrot)', min_value=1, max_value=100, value=20, step=1)
+    for y in range(HEIGHT):
+        for x in range(WIDTH):
+            u = (x / WIDTH - 0.5) * 2 * np.tan(FOV / 2) * ASPECT_RATIO
+            v = (y / HEIGHT - 0.5) * 2 * np.tan(FOV / 2)
+            direction = normalize(forward + u * right + v * up)
+            dist, hit_point, _ = ray_march(camera_pos, direction)
+            if hit_point is not None:
+                normal = get_normal(hit_point)
+                color = simple_lighting(normal, light_dir)
+                image.putpixel((x, y), tuple(color))
 
-# Create Plotly figures
-julia_set = compute_julia(r_julia, a_julia, threshold_julia)
-# mandelbrot_set = compute_mandelbrot(threshold_mandelbrot)
+    image.save(filename)
 
-fig_julia = go.Figure(data=[go.Surface(z=julia_set.T, contours_z=dict(show=True, usecolormap=True, highlightcolor="limegreen", project_z=True))])
-fig_julia.update_layout(title='Julia Set Visualization', scene=dict(
-                    xaxis_title='Real',
-                    yaxis_title='Imaginary',
-                    zaxis_title='Iterations'))
+def create_animation():
+    for i in range(FRAMES):
+        angle = 2 * np.pi * i / FRAMES
+        filename = f'animation3/frame_{i:03}.png'
+        render_frame(angle, filename)
+        print(f'Rendered frame {i+1}/{FRAMES}')
 
-# fig_mandelbrot = go.Figure(data=[go.Surface(z=mandelbrot_set.T, contours_z=dict(show=True, usecolormap=True, highlightcolor="limegreen", project_z=True))])
-# fig_mandelbrot.update_layout(title='Mandelbrot Set Visualization', scene=dict(
-#                     xaxis_title='Real',
-#                     yaxis_title='Imaginary',
-#                     zaxis_title='Iterations'))
-
-# Display plots
-col1, col2 = st.columns(2)
-with col1:
-    st.plotly_chart(fig_julia)
-
-# with col2:
-#     st.plotly_chart(fig_mandelbrot)
-
-import itertools as itt
-import pyfracgen as pf
-from matplotlib import pyplot as plt
-from matplotlib import colormaps
-from pathlib import Path
-
-# Generate and display GIF
-reals = itt.chain(np.linspace(-1, 2, 60)[0:-1],  np.linspace(2, 3, 40))
-series = pf.julia(
-    (complex(real, 0.75) for real in reals),
-    xbound=(-1, 1),
-    ybound=(-0.75, 1.25),
-    update_func=pf.funcs.magnetic_2,
-    maxiter=300,
-    width=5,
-    height=4,
-    dpi=200,
-)
-# gif_path = "/Users/maanas/Desktop/Ashoka/Sem 6/Computer Graphics and Computational Imaging/Final Project/Saved Images/julia_animation_ex.gif"
-# pf.images.save_animation(
-#     list(series),
-#     cmap=colormaps["ocean"],
-#     gamma=0.6,
-#     file=Path(gif_path)
-# )
-
-# Display generated GIF
-st.markdown("## Julia Set GIF:")
-st.image(gif_path)
+create_animation()
