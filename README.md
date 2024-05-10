@@ -1,5 +1,7 @@
 # 3D Fractal Visualisation using Ray Marching
 
+
+
 Methodology:
 
 1. Fractal Distance Estimation
