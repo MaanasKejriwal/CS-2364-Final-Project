@@ -1,57 +1,50 @@
-# Project Proposals
-Below, I have described two project ideas that I would like to be considered for my final project for this course. The first is an unconventional idea, and second conventional. I have ordered them according to personal preference **(based on both interest, value added to the course, and feasibility)**
+# 3D Fractal Visualisation using Ray Marching
+
+Methodology:
+
+1. Fractal Distance Estimation
+mandelbulb_distance is a function that simulates the behavior of a point in a fractal space defined by the Mandelbulb equation. It iteratively transforms a point based on the fractal's rules and checks if the point escapes to a "safe" distance (defined by bailout). The function returns a distance estimate that informs the ray marching algorithm about how safely it can proceed along the ray towards the viewer, optimizing rendering by skipping over empty space
+
+2. Ray Marching:
+For every pixel in the image, a ray is computed from the camera position through the pixel's location in the image plane. The ray's direction is calculated based on the pixel's coordinates relative to the center of the image, adjusted for the camera's orientation and the field of view (FOV).
+
+a. The loop iterates over each pixel, calculating the direction vector (direction) for the ray that passes through the pixel.
+b. ray_march function is called with this direction and the camera position. It returns whether the ray hits the fractal and, if so, the point of contact (hit_point).
+c. If a hit is detected, the surface normal at that point is computed using get_normal.
+d. Lighting is calculated based on this normal and a predefined light direction, using simple_lighting.
+e. The pixel's color is set based on the lighting calculation.
+
+3. Normalisation
+a. get_normal: Computes the surface normal at a point p on the fractal, used for lighting calculations.
+b. normalize: Normalizes a vector v, making it unit length. This is  necessary for proper geometric calculations, ensuring directions are consistent regardless of original vector length.
+
+4. Simple Lighting
+   a. simple_lighting: Computes simple lighting based on a light direction, a normal at a surface, and a light color. It simulates how light might reflect off the fractal surface to give visual depth and realism.
+
+5. Advanced Lighting
+a. Ambient Light:
+Ambient lighting is a simple model used to simulate indirect light in a scene that is scattered and comes from no specific direction. It ensures that no areas of the scene are completely black, simulating the effect of light bouncing off other surfaces in the environment.
+In the function, ambient is computed as a fraction of the light color, making it a constant color added to every point, regardless of its orientation relative to light sources.
+b. Diffuse Lighting:
+Diffuse lighting simulates the direct illumination received from a light source. It depends on the angle of the light hitting the surface, which is calculated using the dot product between the surface normal and the light direction.
+This implementation mirrors the simpler model but is explicitly scaled by a diffuse factor and can be adjusted for intensity through this parameter.
+c. Specular Reflection:
+Specular reflections represent the bright highlights that appear on shiny surfaces when viewed from specific angles. It is calculated based on the angle between the viewer's direction and the direction of the reflected light ray.
+The specular component uses the reflection of the light direction off the surface normal, and the intensity of the specular highlight is controlled by the shininess parameter, which affects how sharp or broad the highlight appears. A higher shininess value results in a smaller, more focused highlight.
+
+6. Final Rendering
+a. Initializing the Image Canvas: Image.new('RGB', (WIDTH, HEIGHT))
+b. Setting Camera and Viewing Geometry: camera_pos,look_at, up, forward, right, and up vectors
+c. Calculating Ray Directions for Each Pixel:
+d. Ray Marching to Determine Surface Interaction:
+ray_march(camera_pos, direction)
+e. Surface Normal Calculation and Lighting:
+get_normal(hit_point)
+simple_lighting(normal, light_dir)
+f. Setting the Pixel Color:
+image.putpixel((x, y), tuple(color))
+g. Saving the Image:
+image.save(filename)
 
 
-# Option 1: Generative Art: Fractal Generation and Visualisation with Parameter Tuning
-
-
-<H3>What I plan to do</H3>
-
-My first idea is a fractal generator and visualiser. I will be generating fractals such as the Mandelbrot set, the Julia Set, Fractal trees, the Markus-Lyapunov Fractal, Buddhabrot, "random walk" etc. I will be generating these with random or set dimensions, and I am planning on letting the user play around with sliders to make various adjustments to paramaeters that will influence the output 3d generated fractal. These parameters include size, iterations, colours etc. I am also planning on adding a "randomise" button which the user can click to see a randomly generated fractal by picking random variables. This is **really interesting to me as this lies at the intersection of CS, Graphics, and Mathematics.**
-
-Since this is just a proposal, I would also want to share my backup idea if in case I am unable to generate a 3d model of these fractals, due to any unforseen hurdles. If this happens, I should still be able to generate images of these fractals and also possibly animations of these fractals being generated. 
-
-<H3>How I plan to do it</H3>
-
-For the fractal generation, I will be writing python code to generate multiple different types of fractals as described above. I will be allowing parameter tuning and parameter randomisation at the user's end through simple buttons and sliders. I will also be creating images/animations/3d models based on complexity, feasibility and time constraints.
-
-For visualisation, I plan to use a combination of plotly and matplotlib depending on what generates better looking models. I will also be researching other packages such as OpenGL for 3D visualisation. For the UI sliders I plan to use Streamlit.
-
-I am also happy to write a small report on the project as a supplement.
-
-A few examples of what I am talking about are attached below:
-
-Mandelbrot Set:
-![Let's draw the Mandelbrot set! – The Mindful Programmer](https://jonisalonen.com/wp-content/uploads/mandelbrot1.png)
-
-Julia set:
-![An example of a fractal known as the Julia set [47] for a given... |  Download Scientific Diagram](https://www.researchgate.net/publication/326965061/figure/fig1/AS:658393085784064@1533984552077/An-example-of-a-fractal-known-as-the-Julia-set-47-for-a-given-constant-offset-c.png)
-
-Fractal tree:
-![turtle graphics - Drawing a fractal tree in Python, not sure how to proceed  - Stack Overflow](https://i.stack.imgur.com/dgkgO.png)
-
-Markus-Lyapunov Fractal:
-![How does the Lyapunov fractile work? - Quora](https://qph.cf2.quoracdn.net/main-qimg-be031b80fc9a5e92474bbc8767aac760-pjlq)
-
-# Option 2: CycleGAN to transfer artistic style of a painter to images
-
-<H3>What I plan to do</H3>
-
-This project is a competition on Kaggle, where one has to use a dataset supplied by them of images of Monet's art, to convert other images to Monet's artistic style using CycleGANs. 
-
-This uses the CycleGAN architecture to transfer distinct characteristic of Monet's images (any such category of images can be used) and uses these characteristics translating them to another set of images. 
-
-I will be using data from Kaggle for the Artist images. Since this has been done with Monet already as a competition, I aim to, if feasible, do this project with another artist (perhaps Van Gogh). If I am able to find a good dataset that collects a variety of input images to transform into Van Gogh's style I will use the same, else I will use the images from this competition especially if I do not go with Monet.
-
-The official challenge requires generation of 7000-10,000 Monet-style images, I will be aiming to generate fewer images in Van Gogh's style. I also plan on writing a report on the analysis of these newly generated images. I will mostly be using a jupyter notebook/google colab file as opposed to streamlit as discussed in the previous proposal (option 1).
-
-<H3>How I plan to do it</H3>
-
-I will be understanding the CycleGAN architecture and writing code myself. I will be using modules like sklearn for model creation as I believe that the ML part of this is not as relevant to the course as the visualisation part of it, unless you deem necessary.
-
-For the data, as dicussed above, I will be locating art images of another popular artist (opposed to Monet as that has been done) such as Van Gogh. For the input images I will again be using a dataset, or may use the same dataset if that would not be an issue (since it is collected specifically for this task). 
-
-I will be using a jupyter notebook and will be writing a short analytical report based on the results.
-
-![Make-A-Monet: Image Style Transfer With Cycle GANs | by DataRes at UCLA |  Medium](https://miro.medium.com/v2/resize:fit:1400/0*vEJOv0dMLr5Wv3Bg)
 
